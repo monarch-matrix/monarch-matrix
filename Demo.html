@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLEETPULSE ⚡ System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --void: #02020A;
+    --abyss: #070714;
+    --shadow: #0D0D22;
+    --panel: #10102A;
+    --card: #141430;
+    --card2: #1A1A3E;
+    --border: #2A2A5A;
+    --border-glow: #5555FF;
+    --sys-blue: #4488FF;
+    --sys-purple: #9933FF;
+    --sys-cyan: #00DDFF;
+    --sys-gold: #FFD700;
+    --sys-red: #FF3355;
+    --sys-green: #00FF88;
+    --sys-magenta: #FF44CC;
+    --text-primary: #E8E8FF;
+    --text-secondary: #8888CC;
+    --text-dim: #444488;
+    --glow-blue: 0 0 20px rgba(68,136,255,0.6), 0 0 40px rgba(68,136,255,0.2);
+    --glow-purple: 0 0 20px rgba(153,51,255,0.6), 0 0 40px rgba(153,51,255,0.2);
+    --glow-cyan: 0 0 20px rgba(0,221,255,0.6), 0 0 40px rgba(0,221,255,0.2);
+    --glow-gold: 0 0 20px rgba(255,215,0,0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    background: var(--void);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+  }
+
+  #particles {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: drift linear infinite;
+    opacity: 0;
+  }
+  @keyframes drift {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-20px) scale(1); opacity: 0; }
+  }
+
+  /* TOP BAR */
+  #topbar {
+    position: relative; z-index: 10;
+    background: linear-gradient(180deg, rgba(10,10,30,0.98) 0%, rgba(10,10,25,0.92) 100%);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+  #topbar::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sys-blue), var(--sys-purple), var(--sys-cyan), transparent);
+    animation: scanLine 3s linear infinite;
+  }
+  @keyframes scanLine {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .logo-group { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px; font-weight: 900;
+    background: linear-gradient(135deg, var(--sys-blue), var(--sys-purple), var(--sys-cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    letter-spacing: 2px;
+  }
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .sys-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border: 1px solid var(--sys-green);
+    color: var(--sys-green);
+    letter-spacing: 2px;
+    animation: pulse-badge 2s ease-in-out infinite;
+  }
+  @keyframes pulse-badge {
+    0%,100% { box-shadow: 0 0 8px rgba(0,255,136,0.3); }
+    50% { box-shadow: 0 0 16px rgba(0,255,136,0.7); }
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .theme-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 16px;
+    width: 36px; height: 36px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+  }
+  .theme-btn:hover { border-color: var(--sys-cyan); box-shadow: var(--glow-cyan); }
+
+  /* MAIN LAYOUT */
+  #main {
+    display: flex; flex: 1;
+    overflow: hidden;
+    position: relative; z-index: 1;
+  }
+
+  /* LEFT PANEL */
+  #left-panel {
+    width: 420px; flex-shrink: 0;
+    background: var(--abyss);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--sys-blue);
+    font-weight: 800;
+  }
+  .panel-dot {
+    width: 6px; height: 6px;
+    background: var(--sys-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--sys-cyan);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  .left-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .left-scroll::-webkit-scrollbar { width: 4px; }
+  .left-scroll::-webkit-scrollbar-track { background: var(--abyss); }
+  .left-scroll::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+  .sys-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+    transition: all 0.3s ease-in-out;
+    outline: none;
+  }
+  .sys-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--sys-blue), var(--sys-purple));
+  }
+  .sys-card:hover, .sys-card:focus-within { border-color: var(--sys-cyan); box-shadow: 0 0 12px rgba(0, 221, 255, 0.2); }
+
+  .field-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--sys-cyan);
+    margin-bottom: 10px;
+    display: flex; align-items: center;
+    text-transform: uppercase;
+    user-select: none;
+  }
+
+  .sl-dropdown-container {
+    position: relative;
+  }
+
+  .sys-input-wrapper {
+    display: flex;
+    background: var(--void);
+    border: 1px solid var(--border);
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .sys-input-wrapper:focus-within {
+    border-color: var(--sys-cyan);
+  }
+
+  .sys-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 14px;
+    outline: none;
+    letter-spacing: 1px;
+  }
+
+  .arrow-trigger-btn {
+    background: transparent;
+    border: none;
+    color: var(--sys-cyan);
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 11px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    transition: color 0.2s;
+  }
+  .arrow-trigger-btn:hover {
+    color: #FFFFFF;
+  }
+
+  .panel-arrow {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+  }
+
+  .hint-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px; color: var(--text-dim);
+    margin-top: 8px; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .sl-dropdown-box {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    background: var(--shadow);
+    border: 1px solid var(--sys-cyan);
+    border-top: none;
+    z-index: 100;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0.25s;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 221, 255, 0.15);
+  }
+
+  .sl-dropdown-container.open .sl-dropdown-box {
+    max-height: 220px;
+    opacity: 1;
+    visibility: visible;
+  }
+  .sl-dropdown-container.open .panel-arrow {
+    transform: rotate(90deg);
+    color: #FFFFFF;
+  }
+
+  .sl-dropdown-item {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(42, 42, 90, 0.4);
+  }
+  .sl-dropdown-item:last-child { border-bottom: none; }
+  .sl-dropdown-item:hover {
+    background: linear-gradient(90deg, rgba(68, 136, 255, 0.15), transparent);
+    color: var(--sys-green);
+    padding-left: 22px;
+  }
+
+  .csv-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--sys-purple);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+    text-transform: uppercase;
+  }
+  .csv-label::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  #csv-input {
+    width: 100%;
+    background: var(--shadow);
+    border: 1px solid var(--border);
+    color: #00FF88;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    resize: none;
+    outline: none;
+    height: 180px;
+    line-height: 1.6;
+    transition: border-color 0.3s;
+  }
+  #csv-input:focus { border-color: var(--sys-purple); box-shadow: 0 0 12px rgba(153,51,255,0.3); }
+
+  #exec-btn {
+    margin: 0 20px 20px;
+    background: transparent;
+    border: 2px solid var(--sys-blue);
+    color: var(--sys-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 3px;
+    padding: 16px;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    text-transform: uppercase;
+  }
+  #exec-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--sys-blue), var(--sys-purple));
+    opacity: 0; transition: opacity 0.3s;
+  }
+  #exec-btn:hover {
+    color: #fff;
+    box-shadow: var(--glow-blue);
+    border-color: var(--sys-cyan);
+  }
+  #exec-btn:hover::before { opacity: 0.15; }
+  #exec-btn span { position: relative; z-index: 1; }
+  #exec-btn.running {
+    animation: exec-pulse 0.8s ease-in-out infinite;
+    border-color: var(--sys-gold);
+    color: var(--sys-gold);
+  }
+  @keyframes exec-pulse {
+    0%,100% { box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+    50% { box-shadow: 0 0 30px rgba(255,215,0,0.9); }
+  }
+
+  /* RIGHT PANEL */
+  #right-panel {
+    flex: 1;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background: var(--void);
+  }
+
+  /* TABS */
+  .tab-bar {
+    display: flex;
+    background: var(--abyss);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; letter-spacing: 2px;
+    font-weight: 800;
+    color: var(--text-dim);
+    background: none; border: none;
+    padding: 14px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text-secondary); }
+  .tab-btn.active {
+    color: var(--sys-blue);
+    border-bottom-color: var(--sys-blue);
+    text-shadow: 0 0 12px rgba(68,136,255,0.8);
+  }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; }
+  .tab-content.active { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ANALYTICS TAB */
+  #tab-analytics {
+    padding: 20px;
+    overflow-y: auto;
+    gap: 16px;
+    display: none;
+  }
+  #tab-analytics.active { display: flex; flex-direction: column; }
+  #tab-analytics::-webkit-scrollbar { width: 4px; }
+  #tab-analytics::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+  /* KPI CARDS (Expanded grid setup for 4 items seamlessly) */
+  .kpi-row { 
+    display: grid; 
+    grid-template-columns: repeat(4, minmax(0, 1fr)); 
+    gap: 12px; 
+    margin-bottom: 16px; 
+    flex-shrink: 0; 
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 16px 14px;
+    position: relative; 
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    min-width: 0;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card .corner-tl, .kpi-card .corner-br {
+    position: absolute;
+    width: 12px; height: 12px;
+  }
+  .kpi-card .corner-tl { top: 0; left: 0; border-top: 2px solid; border-left: 2px solid; }
+  .kpi-card .corner-br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; }
+
+  .kpi-card.blue .corner-tl, .kpi-card.blue .corner-br { border-color: var(--sys-blue); }
+  .kpi-card.blue:hover { box-shadow: var(--glow-blue); }
+  .kpi-card.purple .corner-tl, .kpi-card.purple .corner-br { border-color: var(--sys-purple); }
+  .kpi-card.purple:hover { box-shadow: var(--glow-purple); }
+  .kpi-card.cyan .corner-tl, .kpi-card.cyan .corner-br { border-color: var(--sys-cyan); }
+  .kpi-card.cyan:hover { box-shadow: var(--glow-cyan); }
+  .kpi-card.gold .corner-tl, .kpi-card.gold .corner-br { border-color: var(--sys-gold); }
+  .kpi-card.gold:hover { box-shadow: var(--glow-gold); }
+
+  .kpi-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px; letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kpi-card.blue .kpi-name { color: var(--sys-blue); }
+  .kpi-card.purple .kpi-name { color: var(--sys-purple); }
+  .kpi-card.cyan .kpi-name { color: var(--sys-cyan); }
+  .kpi-card.gold .kpi-name { color: var(--sys-gold); }
+
+  .kpi-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px; font-weight: 900;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+  
+  @media(min-width: 1200px) {
+    .kpi-val { font-size: 22px; }
+  }
+  
+  .kpi-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--text-dim);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* MANIFEST */
+  .manifest-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex: 1;
+    min-height: 200px;
+  }
+  .manifest-hdr {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card2);
+    flex-shrink: 0;
+  }
+  .manifest-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; letter-spacing: 2px; color: var(--sys-cyan);
+    font-weight: 800;
+  }
+  .manifest-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 2px 8px; letter-spacing: 1px;
+  }
+  #manifest-body {
+    flex: 1; overflow-y: auto;
+    padding: 14px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; line-height: 1.8;
+    color: var(--text-dim);
+  }
+  #manifest-body::-webkit-scrollbar { width: 4px; }
+  #manifest-body::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+  /* GPS TAB */
+  #tab-gps { padding: 20px; overflow-y: auto; gap: 12px; }
+  #tab-gps::-webkit-scrollbar { width: 4px; }
+  #tab-gps::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+  .gps-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .gps-title { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--sys-cyan); font-weight: 800; }
+  .live-dot { display: flex; align-items: center; gap: 6px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--sys-green); }
+  .live-dot::before {
+    content: ''; width: 8px; height: 8px; background: var(--sys-green); border-radius: 50%;
+    box-shadow: 0 0 10px var(--sys-green); animation: blink 1s ease-in-out infinite;
+  }
+
+  .gps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .gps-card { background: var(--card); border: 1px solid var(--border); padding: 16px; position: relative; overflow: hidden; transition: border-color 0.3s; }
+  .gps-card::after { content: ''; position: absolute; top: 0; right: 0; width: 40px; height: 40px; background: radial-gradient(circle, rgba(0,221,255,0.15) 0%, transparent 70%); }
+  .gps-card:hover { border-color: var(--sys-cyan); }
+  .gps-vid { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--sys-blue); margin-bottom: 12px; letter-spacing: 1px; font-weight: 800; }
+  .gps-row { display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; font-size: 10px; margin-bottom: 4px; }
+  .gps-key { color: var(--text-dim); }
+  .gps-val { color: var(--text-primary); }
+  .gps-speed { color: var(--sys-green); font-weight: 700; }
+  .gps-idle { color: var(--sys-gold); font-weight: 700; }
+  .gps-status { margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px; padding: 4px 0; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+
+  /* FLEET STATS */
+  .fleet-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .fleet-stat { background: var(--card); border: 1px solid var(--border); padding: 12px 14px; text-align: center; }
+  .fleet-stat-val { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--sys-cyan); font-weight: 800; }
+  .fleet-stat-key { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
+  /* MAP VIEW */
+  #tab-map { position: relative; }
+  #leaflet-map { width: 100%; height: 100%; }
+  .map-overlay { position: absolute; top: 16px; left: 16px; z-index: 1000; background: rgba(10,10,30,0.9); border: 1px solid var(--border); padding: 10px 14px; font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; pointer-events: none; }
+  .map-overlay-title { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--sys-cyan); letter-spacing: 2px; margin-bottom: 6px; font-weight: 800; }
+  .map-legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .map-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .map-sq { width: 10px; height: 10px; }
+  .map-no-data { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 1000; text-align: center; font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--text-dim); letter-spacing: 2px; pointer-events: none; font-weight: 600; }
+
+  /* STATUS BAR */
+  #statusbar { position: relative; z-index: 10; background: var(--abyss); border-top: 1px solid var(--border); height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  #status-text { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--text-dim); transition: color 0.3s; }
+  .status-right { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); display: flex; gap: 20px; }
+
+  /* LIGHT THEME MODIFIERS */
+  body.light {
+    --void: #F0F2FF; --abyss: #E8EAFF; --shadow: #DDE0FF; --panel: #D8DCFF; --card: #FFFFFF; --card2: #F5F5FF; --border: #C0C8FF; --border-glow: #6644FF;
+    --sys-blue: #2244DD; --sys-purple: #7700DD; --sys-cyan: #0088CC; --sys-gold: #CC8800; --sys-red: #CC2244; --sys-green: #007744; --sys-magenta: #CC2299;
+    --text-primary: #111133; --text-secondary: #334488; --text-dim: #7788BB;
+  }
+  body.light .sys-card { background: #fff; }
+  body.light .sys-input-wrapper { background: #F0F4FF; }
+  body.light .sys-input { color: #111133; }
+  body.light .sl-dropdown-box { background: #FFFFFF; border-color: var(--sys-blue); }
+  body.light .sl-dropdown-item { border-bottom-color: #F0F2FF; color: var(--text-secondary); }
+  body.light .sl-dropdown-item:hover { background: #F0F4FF; color: var(--sys-green); }
+  body.light #csv-input { background: #F0F4FF; color: #007744; }
+  body.light #manifest-body { background: #fff; }
+
+  .fade-in { animation: fadeInUp 0.4s ease forwards; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .capacity-bar { height: 4px; background: var(--shadow); margin-top: 8px; position: relative; overflow: hidden; }
+  .capacity-fill { height: 100%; background: linear-gradient(90deg, var(--sys-blue), var(--sys-purple), var(--sys-cyan)); transition: width 0.5s ease; box-shadow: 0 0 8px rgba(68,136,255,0.6); }
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<div id="topbar">
+  <div class="logo-group">
+    <div>
+      <div class="logo-icon">⚡ FLEETPULSE</div>
+      <div class="logo-sub">VEHICLE ROUTING SYSTEM · v3.0.0 · SOLO EDITION</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme" id="themeBtn">☀️</button>
+    <div class="sys-badge">● SYSTEM READY</div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="left-panel">
+    <div class="panel-header">
+      <div class="panel-dot"></div>
+      <div class="panel-title">CONTROL INTERFACE</div>
+    </div>
+
+    <div class="left-scroll">
+      <div class="sys-card sl-dropdown-container" id="container-capacity">
+        <span class="field-label">VEHICLE CAPACITY (kg)</span>
+        <div class="sys-input-wrapper">
+          <input type="text" class="sys-input" id="capacity" value="1200" placeholder="Type custom value...">
+          <button class="arrow-trigger-btn" type="button" aria-label="Toggle Dropdown">
+            <span class="panel-arrow">▷</span>
+          </button>
+        </div>
+        <div class="capacity-bar"><div class="capacity-fill" id="cap-bar" style="width:60%"></div></div>
+        <div class="hint-text">── Type custom value or click arrow ──</div>
+        <div class="sl-dropdown-box">
+          <div class="sl-dropdown-item" data-value="600">600 kg (LIGHT UNIT)</div>
+          <div class="sl-dropdown-item" data-value="900">900 kg (SCOUT CAR)</div>
+          <div class="sl-dropdown-item" data-value="1200">1200 kg (STANDARD CRUISE)</div>
+          <div class="sl-dropdown-item" data-value="1500">1500 kg (HEAVY RIG)</div>
+          <div class="sl-dropdown-item" data-value="2000">2000 kg (MAX ATTRIBUTE)</div>
+        </div>
+      </div>
+
+
+      
+      <div class="sys-card sl-dropdown-container" id="container-fuelcost">
+        <span class="field-label">FUEL COST (PKR/liter)</span>
+        <div class="sys-input-wrapper">
+          <input type="text" class="sys-input" id="fuelcost" value="290.50" placeholder="Type custom price...">
+          <button class="arrow-trigger-btn" type="button" aria-label="Toggle Dropdown">
+            <span class="panel-arrow">▷</span>
+          </button>
+        </div>
+        <div class="hint-text">── Type custom value or click arrow ──</div>
+        <div class="sl-dropdown-box">
+          <div class="sl-dropdown-item" data-value="270.00">270.00 PKR/L (SUBSIDIZED)</div>
+          <div class="sl-dropdown-item" data-value="282.40">282.40 PKR/L (BASE RATE)</div>
+          <div class="sl-dropdown-item" data-value="290.50">290.50 PKR/L (CURRENT MARKET)</div>
+          <div class="sl-dropdown-item" data-value="305.00">305.00 PKR/L (HIGH PEAK)</div>
+          <div class="sl-dropdown-item" data-value="320.00">320.00 PKR/L (CRITICAL INFLATION)</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="csv-label">▶ LOCATION DATA — CSV</div>
+        <textarea id="csv-input">LocationID,Latitude,Longitude,WeightKG,Priority
+Warehouse,24.8607,67.0011,0,0
+Dropoff_A,24.9263,67.0694,450,1
+Dropoff_B,24.8922,67.0747,200,2
+Dropoff_C,24.8453,67.1012,310,1
+Dropoff_D,24.9801,67.0321,180,3
+Dropoff_E,24.8340,66.9870,270,2
+Dropoff_F,24.9105,66.9543,390,1
+Dropoff_G,24.8720,67.1345,150,3
+Dropoff_H,24.9450,67.0890,220,2
+Dropoff_I,24.8195,67.0230,340,1
+Dropoff_J,24.9670,66.9780,190,3</textarea>
+        <div class="hint-text" style="margin-top:4px;">FORMAT: ID · LAT · LON · WEIGHT · PRIORITY</div>
+      </div>
+    </div>
+
+    <button id="exec-btn" onclick="runOptimization()">
+      <span>⚡ &nbsp; EXECUTE &nbsp; OPTIMIZATION</span>
+    </button>
+  </div>
+
+  <div id="right-panel">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('analytics',this)">◈ ANALYTICS</button>
+      <button class="tab-btn" onclick="switchTab('gps',this)">◉ GPS TRACKER</button>
+      <button class="tab-btn" onclick="switchTab('map',this)">◎ MAP VIEW</button>
+    </div>
+
+    <div id="tab-analytics" class="tab-content active">
+      <div class="kpi-row">
+        <div class="kpi-card blue">
+          <div class="corner-tl"></div><div class="corner-br"></div>
+          <div class="kpi-name">DISTANCE OPTIMIZED</div>
+          <div class="kpi-val" id="kpi-dist">—</div>
+          <div class="kpi-sub" id="kpi-dist-sub">AWAITING EXECUTION</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="corner-tl"></div><div class="corner-br"></div>
+          <div class="kpi-name">FUEL SAVINGS</div>
+          <div class="kpi-val" id="kpi-fuel">—</div>
+          <div class="kpi-sub" id="kpi-fuel-sub">AWAITING EXECUTION</div>
+        </div>
+        <div class="kpi-card cyan">
+          <div class="corner-tl"></div><div class="corner-br"></div>
+          <div class="kpi-name">ESTIMATED TRANSIT</div>
+          <div class="kpi-val" id="kpi-transit">—</div>
+          <div class="kpi-sub" id="kpi-transit-sub">AWAITING EXECUTION</div>
+        </div>
+        <div class="kpi-card gold">
+          <div class="corner-tl"></div><div class="corner-br"></div>
+          <div class="kpi-name">RUNTIME</div>
+          <div class="kpi-val" id="kpi-time">—</div>
+          <div class="kpi-sub" id="kpi-time-sub">AWAITING EXECUTION</div>
+        </div>
+      </div>
+
+      <div class="manifest-wrap">
+        <div class="manifest-hdr">
+          <span class="manifest-title">◈ DISPATCH MANIFEST</span>
+          <span class="manifest-badge" id="manifest-badge">AWAITING</span>
+        </div>
+        <div id="manifest-body">
+          <span style="color:var(--text-dim)">
+░░ NO ROUTE COMPUTED YET<br><br>
+Configure parameters → select dropdown quantities → load data → map execution optimization matrix.<br>
+Multi-vehicle CVRP routing via Haversine geodesic metrics.<br><br>
+Nearest-Neighbor spatial optimization loop active.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-gps" class="tab-content">
+      <div class="gps-header">
+        <div class="gps-title">ACTIVE FLEET TRACKING</div>
+        <div class="live-dot">LIVE TELEMETRY</div>
+      </div>
+      <div class="fleet-stats">
+        <div class="fleet-stat">
+          <div class="fleet-stat-val" id="fs-active">3</div>
+          <div class="fleet-stat-key">ACTIVE</div>
+        </div>
+        <div class="fleet-stat">
+          <div class="fleet-stat-val" id="fs-speed" style="color:var(--sys-green)">42</div>
+          <div class="fleet-stat-key">AVG km/h</div>
+        </div>
+        <div class="fleet-stat">
+          <div class="fleet-stat-val" id="fs-delivered" style="color:var(--sys-purple)">0</div>
+          <div class="fleet-stat-key">DELIVERED</div>
+        </div>
+        <div class="fleet-stat">
+          <div class="fleet-stat-val" id="fs-coverage" style="color:var(--sys-gold)">0%</div>
+          <div class="fleet-stat-key">COVERAGE</div>
+        </div>
+      </div>
+      <div class="gps-grid" id="gps-cards-container"></div>
+    </div>
+
+    <div id="tab-map" class="tab-content">
+      <div id="leaflet-map"></div>
+      <div class="map-overlay">
+        <div class="map-overlay-title">◎ KARACHI DELIVERY MAP</div>
+        <div class="map-legend-item">
+          <div class="map-sq" style="background:var(--sys-blue)"></div>
+          <span style="color:var(--text-secondary)">Warehouse</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-dot" style="background:var(--sys-green)"></div>
+          <span style="color:var(--text-secondary)">Delivery Stop</span>
+        </div>
+        <div class="map-legend-item" id="route-legend-items"></div>
+      </div>
+      <div class="map-no-data" id="map-no-data">RUN OPTIMIZATION TO<br>VISUALIZE MATRIX MAP</div>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <div id="status-text">READY · NEAREST-NEIGHBOR CVRP ENGINE · HAVERSINE COMPUTATION TRACE</div>
+  <div class="status-right">
+    <span id="sb-algo">O(n²) ALGORITHM</span>
+    <span id="sb-time">IDLE</span>
+  </div>
+</div>
+
+<script>
+// PARTICLES BACKGROUND GENERATION
+const AVG_FLEET_SPEED = 40.0; // Average fleet operation speed in km/h used for calculating arrival windows.
+
+(function() {
+  const c = document.getElementById('particles');
+  const colors = ['#4488FF','#9933FF','#00DDFF','#FFD700'];
+  for(let i=0;i<40;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*3+1;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*-20}s;
+      box-shadow:0 0 ${size*3}px ${colors[Math.floor(Math.random()*colors.length)]};
+    `;
+    c.appendChild(p);
+  }
+})();
+
+// DUAL INTERACTIVE DROP-DOWN / TEXT INPUT MANAGER
+document.addEventListener('DOMContentLoaded', () => {
+  const containers = document.querySelectorAll('.sl-dropdown-container');
+  
+  containers.forEach(container => {
+    const mainInput = container.querySelector('.sys-input');
+    const triggerBtn = container.querySelector('.arrow-trigger-btn');
+    const items = container.querySelectorAll('.sl-dropdown-item');
+    
+    triggerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      containers.forEach(other => { if(other !== container) other.classList.remove('open'); });
+      container.classList.toggle('open');
+    });
+
+    items.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rawValue = item.getAttribute('data-value');
+        mainInput.value = rawValue;
+        
+        mainInput.style.color = 'var(--sys-green)';
+        setTimeout(() => { mainInput.style.color = '#FFFFFF'; }, 400);
+        
+        container.classList.remove('open');
+        updateCapacityFillBar();
+      });
+    });
+
+    mainInput.addEventListener('input', () => {
+      updateCapacityFillBar();
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!container.contains(e.target)) {
+        container.classList.remove('open');
+      }
+    });
+  });
+
+  function updateCapacityFillBar() {
+    const capacityInput = document.getElementById('capacity');
+    const rawValue = parseFloat(capacityInput.value);
+    if(!isNaN(rawValue) && rawValue > 0) {
+      const fillPercent = Math.min(100, (rawValue / 2000) * 100);
+      document.getElementById('cap-bar').style.width = fillPercent + '%';
+    } else {
+      document.getElementById('cap-bar').style.width = '0%';
+    }
+  }
+  
+  updateCapacityFillBar();
+});
+
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = document.body.classList.contains('light') ? '🌙' : '☀️';
+  if(leafletMap) { leafletMap.invalidateSize(); }
+}
+
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='map' && leafletMap){ setTimeout(()=>leafletMap.invalidateSize(),50); }
+}
+
+// HAVERSINE DISTANCE TRANSIT LOGIC
+function haversine(a,b){
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLon=(b.lon-a.lon)*Math.PI/180;
+  const h=Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+function parseCSV(raw){
+  const lines = raw.trim().split(/\r?\n/).filter(l=>l.trim());
+  const start = lines[0].toLowerCase().includes('locationid') ? 1 : 0;
+  return lines.slice(start).map((line,i)=>{
+    const c = line.split(',');
+    if(c.length<4) throw `Row ${i+1+start}: needs ≥4 columns`;
+    const lat=parseFloat(c[1]), lon=parseFloat(c[2]), w=parseFloat(c[3]);
+    if(isNaN(lat)||isNaN(lon)||isNaN(w)) throw `Row ${i+1+start}: non-numeric data arrays parsed`;
+    return { id:c[0].trim(), lat, lon, weight:w };
+  });
+}
+
+function naiveDist(pts){
+  let d=0;
+  for(let i=0; i<pts.length-1; i++) d+=haversine(pts[i],pts[i+1]);
+  d+=haversine(pts[pts.length-1],pts[0]);
+  return d;
+}
+
+// CVRP NEAREST NEIGHBOR RESOLUTION ENGINE WITH SEGMENT ARRAYS RETENTION
+function optimizeCVRP(pts, maxCap){
+  const n=pts.length;
+  const dist=Array.from({length:n},(_,i)=>pts.map((_,j)=>haversine(pts[i],pts[j])));
+  const visited=new Array(n).fill(false); visited[0]=true;
+  const routes=[], lengths=[], routeSegmentDistances=[];
+  let totalVisited=0, total=n-1;
+
+  while(totalVisited<total){
+    const route=[0]; let load=0, km=0, cur=0;
+    const segments=[];
+    while(true){
+      let nearest=-1, minD=Infinity;
+      for(let j=1;j<n;j++){
+        if(!visited[j] && load+pts[j].weight<=maxCap && dist[cur][j]<minD){
+          minD=dist[cur][j]; nearest=j;
+        }
+      }
+      if(nearest===-1) break;
+      visited[nearest]=true; totalVisited++;
+      segments.push(dist[cur][nearest]);
+      km+=dist[cur][nearest]; load+=pts[nearest].weight;
+      cur=nearest; route.push(nearest);
+    }
+    segments.push(dist[cur][0]);
+    km+=dist[cur][0]; route.push(0);
+    routes.push(route); lengths.push(km);
+    routeSegmentDistances.push(segments);
+  }
+  return { routes, lengths, routeSegmentDistances, total: lengths.reduce((a,b)=>a+b,0) };
+}
+
+let lastResult=null, lastPoints=null;
+
+function runOptimization(){
+  const btn=document.getElementById('exec-btn');
+  btn.classList.add('running');
+  setStatus('COMPUTING SYSTEMS CRITICAL MATRIX…', '#FFD700');
+
+  const cap=parseFloat(document.getElementById('capacity').value);
+  const fc=parseFloat(document.getElementById('fuelcost').value);
+  
+  if(isNaN(cap) || isNaN(fc) || cap<=0 || fc<=0){ 
+    alert('Please write valid positive numerical metrics for Vehicle Capacity and Fuel Cost elements.'); 
+    btn.classList.remove('running'); 
+    setStatus('MATRIX CALCULATION ERROR', 'var(--sys-red)');
+    return; 
+  }
+
+  let pts;
+  try { pts=parseCSV(document.getElementById('csv-input').value); }
+  catch(e){ alert('Data Parsing Error: '+e); btn.classList.remove('running'); return; }
+  if(pts.length<2){ alert('Incomplete dataset arrays uploaded.'); btn.classList.remove('running'); return; }
+
+  const heavyLocation = pts.find(p => p.weight > cap);
+  if(heavyLocation) {
+    alert(`Operational Failure: Stop "${heavyLocation.id}" payload weights (${heavyLocation.weight}kg) exceeds vehicle maximum capacity constraints (${cap}kg). Please write a larger container weight.`);
+    btn.classList.remove('running');
+    setStatus('CONSTRAINTS VIOLATED', 'var(--sys-red)');
+    return;
+  }
+
+  const t0=performance.now();
+  const result=optimizeCVRP(pts,cap);
+  const execMs=performance.now()-t0;
+
+  const naive=naiveDist(pts);
+  
+  const saved=naive - result.total; 
+  const displaySaved = saved > 0 ? saved : 0.00;
+
+  const baselineFuel = naive * 0.35;
+  const optimizedFuel = result.total * 0.35;
+  const fuelLetersSaved = baselineFuel - optimizedFuel;
+  const fuelCostSaved = fuelLetersSaved > 0 ? fuelLetersSaved * fc : 0;
+
+  // Calculate Cumulative Time Windows 
+  const totalHours = result.total / AVG_FLEET_SPEED;
+  const totalMins = totalHours * 60;
+  let formattedTotalTime = "";
+  if(totalHours >= 1) {
+    formattedTotalTime = `${Math.floor(totalHours)}h ${Math.round(totalMins % 60)}m`;
+  } else {
+    formattedTotalTime = `${Math.round(totalMins)} mins`;
+  }
+
+  lastResult=result; lastPoints=pts;
+
+  animateKPI('kpi-dist', displaySaved.toFixed(2)+' km');
+  document.getElementById('kpi-dist-sub').textContent=`OPT: ${result.total.toFixed(1)} km  ·  BASE: ${naive.toFixed(1)} km`;
+
+  animateKPI('kpi-fuel', 'PKR ' + Math.ceil(fuelCostSaved).toLocaleString('en-PK'));
+  document.getElementById('kpi-fuel-sub').textContent=`${fuelLetersSaved > 0 ? fuelLetersSaved.toFixed(1) : '0.0'} L SHIELD · ${fc.toFixed(1)} PKR/L`;
+
+  animateKPI('kpi-transit', formattedTotalTime);
+  document.getElementById('kpi-transit-sub').textContent=`BASED ON METRIC @ ${AVG_FLEET_SPEED} km/h`;
+
+  animateKPI('kpi-time', execMs.toFixed(3)+' ms');
+  document.getElementById('kpi-time-sub').textContent=`${pts.length-1} STOPS  ·  ${result.routes.length} MATRIX UNITS`;
+
+  renderManifest(result, pts, displaySaved, fuelCostSaved, execMs, fc);
+  updateMap(pts, result);
+  updateGPSVehicles(result.routes.length, pts);
+  updateFleetStats(result, pts);
+
+  btn.classList.remove('running');
+  setStatus(`COMPLETE · ${pts.length-1} SEGMENTS CHECKED · ${result.total.toFixed(2)} km DISPATCHED`, 'var(--sys-green)');
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
+}
+
+function animateKPI(id, val){
+  const el=document.getElementById(id);
+  el.style.opacity=0; el.textContent='...';
+  setTimeout(()=>{ el.textContent=val; el.style.opacity=1; el.style.transition='opacity 0.3s'; },100);
+}
+
+const ROUTE_COLORS = ['var(--sys-green)','var(--sys-purple)','var(--sys-gold)','var(--sys-magenta)','var(--sys-cyan)'];
+
+function renderManifest(res, pts, savedKm, fuelSaved, execMs, fuelPrice){
+  const body=document.getElementById('manifest-body');
+  const ts=new Date().toISOString().replace('T',' ').substring(0,19);
+
+  let html=`
+<span style="color:var(--sys-blue)">══════════════════════════════════════════════════════</span><br>
+<span style="color:var(--sys-cyan);font-weight:700">  ⚡ FLEETPULSE SYSTEM METRIC TRACK MANIFEST</span><br>
+<span style="color:var(--sys-blue)">══════════════════════════════════════════════════════</span><br>
+<span style="color:var(--text-dim)">  Timestamp Track : ${ts}</span><br>
+<span style="color:var(--text-primary)">  Units Allocated : ${res.routes.length}</span><br>
+<span style="color:var(--text-primary)">  Target Drops    : ${pts.length-1}</span><br>
+<span style="color:var(--text-primary)">  Optimized Space : ${res.total.toFixed(2)} km</span><br>
+<span style="color:var(--sys-green)">  Delta Saved     : ${savedKm.toFixed(2)} km ✓</span><br>
+<span style="color:var(--sys-green)">  Delta Budget    : PKR ${Math.ceil(fuelSaved).toLocaleString('en-PK')} (Calculated @ ${fuelPrice} PKR/L) ✓</span><br>
+<span style="color:var(--text-primary)">  Runtime Compute : ${execMs.toFixed(3)} ms</span><br>
+<span style="color:var(--text-dim)">──────────────────────────────────────────────────────</span><br><br>`;
+
+  res.routes.forEach((route,v)=>{
+    const col=ROUTE_COLORS[v%ROUTE_COLORS.length];
+    const routeSegments = res.routeSegmentDistances[v];
+    const totalRouteHours = res.lengths[v] / AVG_FLEET_SPEED;
+    const totalRouteMins = totalRouteHours * 60;
+    const formattedRouteTime = totalRouteHours >= 1 ? `${Math.floor(totalRouteHours)}h ${Math.round(totalRouteMins % 60)}m` : `${Math.round(totalRouteMins)} mins`;
+
+    html+=`<span style="color:${col};font-weight:700">  ◈ UNIT RUN ${String(v+1).padStart(2,'0')}  ·  ${res.lengths[v].toFixed(2)} km (${formattedRouteTime})</span><br>`;
+    html+=`<span style="color:var(--text-dim)">  ┌─────────────────────────────────────────────────</span><br>`;
+
+    let cumLoad=0;
+    let accumulatedRouteDistance = 0;
+
+    route.forEach((idx,s)=>{
+      const dp=pts[idx]; cumLoad+=dp.weight;
+      const label=s===0?'GATE-IN':s===route.length-1?'GATE-OUT':'STATION';
+      const lc=s===0?'var(--sys-blue)':s===route.length-1?'var(--sys-purple)':'var(--sys-green)';
+      
+      if (s > 0) {
+        accumulatedRouteDistance += routeSegments[s - 1];
+      }
+      
+      const segmentHours = accumulatedRouteDistance / AVG_FLEET_SPEED;
+      const segmentTotalMins = segmentHours * 60;
+      const etaString = s === 0 ? "0 mins" : segmentHours >= 1 ? `${Math.floor(segmentHours)}h ${Math.round(segmentTotalMins % 60)}m` : `${Math.round(segmentTotalMins)} mins`;
+
+      html+=`<span style="color:${lc}">  │ ${label.padEnd(8)} [${s}]  ${dp.id.padEnd(14)} ${dp.lat.toFixed(4)}°N  ${dp.lon.toFixed(4)}°E</span><br>`;
+      html+=`<span style="color:var(--text-secondary)">  │          ETA: +${etaString} from gate launch</span><br>`;
+      if(idx!==0){
+        html+=`<span style="color:var(--sys-gold)">  │          Load: +${dp.weight} kg  ·  Manifest Net: ${cumLoad} kg</span><br>`;
+      }
+    });
+    html+=`<span style="color:var(--text-dim)">  └─────────────────────────────────────────────────</span><br><br>`;
+  });
+
+  html+=`<span style="color:var(--sys-blue)">══════════════════════════════════════════════════════</span><br>
+<span style="color:var(--sys-magenta);font-weight:700">  ✅ OPERATION PACKETS RESOLVED — ALL PATHWAYS ASSIGNED</span><br>
+<span style="color:var(--sys-blue)">══════════════════════════════════════════════════════</span>`;
+
+  body.innerHTML=html; body.scrollTop=0;
+  document.getElementById('manifest-badge').textContent='DISPATCHED';
+  document.getElementById('manifest-badge').style.color='var(--sys-green)';
+  document.getElementById('manifest-badge').style.borderColor='var(--sys-green)';
+}
+
+let leafletMap=null, mapMarkers=[], mapPolylines=[];
+
+function initMap(){
+  leafletMap=L.map('leaflet-map',{ center:[24.8607,67.0011], zoom:12, zoomControl:true, attributionControl:true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'© OpenStreetMap © CARTO', maxZoom:19 }).addTo(leafletMap);
+}
+
+const POLY_COLORS_HEX = ['#00FF88','#9933FF','#FFD700','#FF44CC','#00DDFF'];
+
+function updateMap(pts, result){
+  if(!leafletMap) return;
+  mapMarkers.forEach(m=>leafletMap.removeLayer(m));
+  mapPolylines.forEach(p=>leafletMap.removeLayer(p));
+  mapMarkers=[]; mapPolylines=[];
+  document.getElementById('map-no-data').style.display='none';
+
+  result.routes.forEach((route,vi)=>{
+    const col=POLY_COLORS_HEX[vi%POLY_COLORS_HEX.length];
+    const coords=route.map(i=>[pts[i].lat, pts[i].lon]);
+    const poly=L.polyline(coords,{ color:col, weight:3, opacity:0.85, dashArray: vi===0?null:'8,4' }).addTo(leafletMap);
+    mapPolylines.push(poly);
+  });
+
+  pts.forEach((dp,i)=>{
+    let marker;
+    if(i===0){
+      const icon=L.divIcon({ className:'', html:`<div style="width:22px;height:22px;background:#4488FF;border:2px solid #00DDFF;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:Orbitron,sans-serif;box-shadow:0 0 14px rgba(68,136,255,0.9);">W</div>`, iconSize:[22,22], iconAnchor:[11,11] });
+      marker=L.marker([dp.lat,dp.lon],{icon}).addTo(leafletMap);
+    } else {
+      const icon=L.divIcon({ className:'', html:`<div style="width:18px;height:18px;background:#00FF88;border-radius:50%;border:2px solid #00DDFF;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#000;font-family:Orbitron,sans-serif;box-shadow:0 0 10px rgba(0,255,136,0.8);">${i}</div>`, iconSize:[18,18], iconAnchor:[9,9] });
+      marker=L.marker([dp.lat,dp.lon],{icon}).addTo(leafletMap);
+    }
+    marker.bindPopup(`<div style="font-family:Share Tech Mono,monospace;font-size:11px;background:#0D0D22;color:#E8E8FF;border:1px solid #2A2A5A;padding:8px;min-width:160px;"><b style="color:#00DDFF">${dp.id}</b><br>Lat: ${dp.lat.toFixed(5)}<br>Lon: ${dp.lon.toFixed(5)}<br>Payload: ${dp.weight} kg</div>`, {className:'sl-popup'});
+    mapMarkers.push(marker);
+  });
+
+  const allCoords=pts.map(p=>[p.lat,p.lon]);
+  if(allCoords.length) leafletMap.fitBounds(allCoords, {padding:[40,40]});
+
+  let legendHtml='';
+  result.routes.forEach((r,vi)=>{
+    const col=POLY_COLORS_HEX[vi%POLY_COLORS_HEX.length];
+    legendHtml+=`<div class="map-legend-item"><div style="width:20px;height:3px;background:${col};box-shadow:0 0 6px ${col}"></div><span style="color:var(--text-secondary);font-family:Share Tech Mono,monospace;font-size:9px;">UNIT LOG ${String(vi+1).padStart(2,'0')}</span></div>`;
+  });
+  document.getElementById('route-legend-items').innerHTML=legendHtml;
+}
+
+let gpsVehicles=[], gpsTimer=null;
+
+function initGPS(){
+  gpsVehicles=[
+    {id:'VEH-001',lat:24.9263,lon:67.0694,speed:42.5,status:'EN ROUTE',stops:3,delivered:0},
+    {id:'VEH-002',lat:24.8922,lon:67.0747,speed:35.0,status:'EN ROUTE',stops:3,delivered:0},
+    {id:'VEH-003',lat:24.8453,lon:67.1012,speed:38.2,status:'LOADING',stops:2,delivered:0},
+  ];
+  renderGPSCards();
+  if(!gpsTimer) gpsTimer=setInterval(tickGPS,3000);
+}
+
+function updateGPSVehicles(numVehicles, pts){
+  gpsVehicles=[];
+  for(let v=0;v<numVehicles;v++){
+    const p=pts[Math.min(v+1,pts.length-1)];
+    gpsVehicles.push({ id:`VEH-${String(v+1).padStart(3,'0')}`, lat:p.lat, lon:p.lon, speed: 20+Math.random()*50, status: v===0?'EN ROUTE':v===1?'AT STOP':'STANDBY', stops: 3+v, delivered: 0 });
+  }
+  renderGPSCards();
+}
+
+function tickGPS(){
+  gpsVehicles.forEach(v=>{
+    v.lat += (Math.random()-0.5)*0.003; v.lon += (Math.random()-0.5)*0.003; v.speed = 15+Math.random()*65;
+    if(Math.random()<0.1) v.status=['EN ROUTE','AT STOP','LOADING','STANDBY'][Math.floor(Math.random()*4)];
+  });
+  renderGPSCards();
+  const avg=gpsVehicles.reduce((a,v)=>a+v.speed,0)/Math.max(1,gpsVehicles.length);
+  document.getElementById('fs-speed').textContent=avg.toFixed(0);
+}
+
+function updateFleetStats(result, pts){
+  document.getElementById('fs-active').textContent=result.routes.length;
+  document.getElementById('fs-delivered').textContent=pts.length-1;
+  document.getElementById('fs-coverage').textContent='100%';
+}
+
+function renderGPSCards(){
+  const container=document.getElementById('gps-cards-container');
+  if(!container) return;
+  const statColor={'EN ROUTE':'var(--sys-green)','AT STOP':'var(--sys-gold)','LOADING':'var(--sys-cyan)','STANDBY':'var(--text-dim)'};
+  container.innerHTML=gpsVehicles.map(v=>`
+    <div class="gps-card fade-in">
+      <div class="gps-vid">◉ ${v.id}</div>
+      <div class="gps-row"><span class="gps-key">LATITUDE</span><span class="gps-val">${v.lat.toFixed(6)}°N</span></div>
+      <div class="gps-row"><span class="gps-key">LONGITUDE</span><span class="gps-val">${v.lon.toFixed(6)}°E</span></div>
+      <div class="gps-row"><span class="gps-key">SPEED METER</span><span class="${v.speed>50?'gps-speed':'gps-idle'}">${v.speed.toFixed(1)} km/h</span></div>
+      <div class="gps-row"><span class="gps-key">PENDING LOOPS</span><span class="gps-val">${v.stops}</span></div>
+      <div class="gps-status" style="color:${statColor[v.status]||'var(--text-dim)'}">● ${v.status}</div>
+    </div>
+  `).join('');
+}
+
+function setStatus(msg, color='var(--text-dim)'){
+  const el=document.getElementById('status-text');
+  el.textContent=msg; el.style.color=color;
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initMap();
+  initGPS();
+});
+</script>
+</body>
+</html>
